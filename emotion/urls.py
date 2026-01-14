@@ -34,5 +34,9 @@ urlpatterns = [
     path('profile/',views.profile, name='profile'),
 
     path('logout/',views.logout),
+    path('add_music/', views.add_music, name='add_music'),
+    path('emotion_recommend/', views.emotion_recommend, name='emotion_recommend'),
+    path('view_music/', views.view_music, name='view_music'),
+    path('emotion_detect/', views.emotion_based_recommend, name='emotion_detect'),
     path('admin/', admin.site.urls),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

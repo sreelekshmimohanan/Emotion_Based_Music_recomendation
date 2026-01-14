@@ -82,10 +82,13 @@
                     {% if request.session.admin %}
                     <a href="http://127.0.0.1:8000/index" class="nav-item nav-link active">Home</a>
                     <a href="http://127.0.0.1:8000/v_users" class="nav-item nav-link">Viewuser</a>
+                    <a href="http://127.0.0.1:8000/add_music" class="nav-item nav-link">Add Music</a>
                     <a href="http://127.0.0.1:8000/logout" class="nav-item nav-link">Logout</a>
-  {% elif request.session.uid %}
+                    {% elif request.session.uid %}
                     <a href="http://127.0.0.1:8000/index" class="nav-item nav-link">Home</a>
                     <a href="http://127.0.0.1:8000/profile" class="nav-item nav-link">profile</a>
+                    <a href="http://127.0.0.1:8000/emotion_detect" class="nav-item nav-link">Emotion Detect</a>
+                    <a href="http://127.0.0.1:8000/view_music" class="nav-item nav-link">View Music</a>
                     <a href="http://127.0.0.1:8000/logout" class="nav-item nav-link">Logout</a>
 
                     {% else %}

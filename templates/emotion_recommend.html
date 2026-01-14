@@ -1,0 +1,41 @@
+{% load static %}
+{% block content %}
+{% include 'header.html' %}
+
+<div class="container py-5">
+    <h2 class="text-center mb-4">Emotion-Based Music Recommendations</h2>
+
+    {% for emotion, music_list in music_by_emotion.items %}
+        {% if music_list %}
+            <div class="mb-5">
+                <h3 class="text-primary">{{ emotion }} Music</h3>
+                <div class="row">
+                    {% for music in music_list %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ music.name }}</h5>
+                                    <p class="card-text">{{ music.description|truncatechars:100 }}</p>
+                                    <p class="text-muted">Language: {{ music.get_language_display }}</p>
+                                    <audio controls class="w-100">
+                                        <source src="{{ music.music_file.url }}" type="audio/mpeg">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    {% if not music_by_emotion %}
+        <div class="text-center">
+            <p>No music available yet. Please check back later!</p>
+        </div>
+    {% endif %}
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}

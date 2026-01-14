@@ -1,0 +1,43 @@
+{% load static %}
+{% block content %}
+{% include 'header.html' %}
+
+<div class="container py-5">
+    <h2 class="text-center mb-4">Music Library</h2>
+
+    {% if music_list %}
+        <div class="row">
+            {% for music in music_list %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ music.name }}</h5>
+                            <p class="card-text flex-grow-1">{{ music.description|truncatechars:150 }}</p>
+                            <div class="mb-2">
+                                <span class="badge badge-primary">{{ music.get_emotion_display }}</span>
+                                <span class="badge badge-secondary">{{ music.get_language_display }}</span>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Uploaded: {{ music.uploaded_at|date:"M d, Y" }}</small>
+                            </div>
+                            <audio controls class="w-100">
+                                <source src="{{ music.music_file.url }}" type="audio/mpeg">
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center">
+            <div class="alert alert-info">
+                <h4>No Music Available</h4>
+                <p>The music library is currently empty. Please check back later!</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}

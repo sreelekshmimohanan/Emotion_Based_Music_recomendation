@@ -1,0 +1,653 @@
+{% load static %}
+{% block content %}
+{% include 'header.html' %}
+
+<div class="container-fluid py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+    <div class="container py-5">
+        <!-- Header Section -->
+        <div class="row justify-content-center mb-5">
+            <div class="col-12 text-center">
+                <h1 class="display-4 text-white font-weight-bold mb-3">
+                    <i class="fas fa-brain text-warning"></i> Emotion Detection Results
+                </h1>
+                <p class="lead text-white-50">Discover music that matches your current mood</p>
+            </div>
+        </div>
+
+        <!-- Processing Indicator -->
+        <div class="processing-indicator mb-5" id="processing-indicator">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card shadow-lg border-0" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+                        <div class="card-body text-center py-5">
+                            <div class="spinner-border text-primary mb-4" role="status" style="width: 4rem; height: 4rem;">
+                                <span class="sr-only">Processing...</span>
+                            </div>
+                            <h3 class="text-primary mb-3">Analyzing Your Emotions</h3>
+                            <p class="text-muted mb-4">Our AI is processing your facial expressions to detect your current mood...</p>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="emotion-results" id="emotion-results" style="display: none;">
+            <div class="row justify-content-center mb-5">
+                <div class="col-12">
+                    <div class="card shadow-lg border-0" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+                        <div class="card-body p-5">
+                            <!-- Error/Warning Messages -->
+                            {% if error_message %}
+                            <div class="alert alert-warning border-0 shadow-sm mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-warning mr-3"></i>
+                                    <div>
+                                        <h5 class="alert-heading mb-1">Detection Issue</h5>
+                                        <p class="mb-0">{{ error_message }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% elif not faces_detected %}
+                            <div class="alert alert-info border-0 shadow-sm mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle fa-2x text-info mr-3"></i>
+                                    <div>
+                                        <h5 class="alert-heading mb-2">No Face Detected</h5>
+                                        <p class="mb-2">We couldn't detect a face in the camera feed. This might happen if:</p>
+                                        <ul class="mb-0 ml-3">
+                                            <li>You weren't clearly visible in the frame</li>
+                                            <li>Lighting conditions weren't optimal</li>
+                                            <li>The camera angle wasn't suitable</li>
+                                        </ul>
+                                        <p class="mt-2 mb-0 text-muted">Don't worry! We're showing you some great neutral music recommendations instead.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Detected Emotion Display -->
+                            <div class="text-center mb-5">
+                                <div class="emotion-display p-4 rounded-lg shadow-sm" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
+                                    <h2 class="text-white mb-3">
+                                        <i class="fas fa-magic mr-2"></i>
+                                        Detected Emotion:
+                                        <span class="badge badge-light badge-lg ml-2 px-3 py-2">{{ emotion_display }}</span>
+                                    </h2>
+                                    <p class="text-white-75 mb-0">Based on your facial expression analysis</p>
+                                </div>
+                            </div>
+
+                            <!-- Processed Image Section -->
+                            {% if processed_image_url %}
+                            <div class="row justify-content-center mb-5">
+                                <div class="col-md-10 col-lg-8">
+                                    <div class="card shadow-lg border-0">
+                                        <div class="card-header bg-gradient-primary text-white text-center py-3">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-image mr-2"></i>Detection Results
+                                            </h5>
+                                        </div>
+                                        <div class="card-body p-4">
+                                            <div class="text-center">
+                                                <img src="{{ processed_image_url }}" alt="Emotion Detection Result"
+                                                     class="img-fluid rounded-lg shadow-sm border"
+                                                     style="max-width: 100%; height: auto; border: 3px solid #e9ecef;">
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-light text-center">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle mr-1"></i>
+                                                This image shows your face with emotion detection bounding boxes and labels
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Emotion Indicator -->
+                            <div class="row justify-content-center">
+                                <div class="col-md-8 col-lg-6">
+                                    <div class="emotion-indicator-card p-4 rounded-lg shadow-lg text-center"
+                                         style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                        <div id="emotion-content">
+                                            <!-- Emotion-specific content will be loaded here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Music Recommendations Section -->
+        <div id="music-section" style="display: none;">
+            <div class="row justify-content-center mb-4">
+                <div class="col-12 text-center">
+                    <h2 class="text-white mb-3">
+                        <i class="fas fa-music text-warning mr-2"></i>
+                        Recommended Music for You
+                    </h2>
+                    <p class="text-white-75">Based on your {{ emotion_display|lower }} mood</p>
+                </div>
+            </div>
+
+            {% if recommended_music %}
+                <div class="row justify-content-center">
+                    {% for music in recommended_music %}
+                        <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                            <div class="card h-100 shadow-lg border-0 music-card" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); transition: all 0.3s ease;">
+                                <div class="card-body d-flex flex-column p-4">
+                                    <div class="text-center mb-3">
+                                        <div class="music-icon mb-3">
+                                            <i class="fas fa-music fa-3x text-primary"></i>
+                                        </div>
+                                        <h5 class="card-title text-dark font-weight-bold mb-2">{{ music.name }}</h5>
+                                        <p class="card-text text-muted flex-grow-1">{{ music.description|truncatechars:100 }}</p>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-center flex-wrap">
+                                            <span class="badge badge-primary badge-pill px-3 py-2 mr-2 mb-1">
+                                                <i class="fas fa-smile mr-1"></i>{{ music.get_emotion_display }}
+                                            </span>
+                                            <span class="badge badge-secondary badge-pill px-3 py-2 mb-1">
+                                                <i class="fas fa-language mr-1"></i>{{ music.get_language_display }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block text-center">
+                                            <i class="fas fa-calendar-alt mr-1"></i>
+                                            Uploaded: {{ music.uploaded_at|date:"M d, Y" }}
+                                        </small>
+                                    </div>
+
+                                    <div class="audio-player mt-auto">
+                                        <audio controls class="w-100" style="border-radius: 10px;">
+                                            <source src="{{ music.music_file.url }}" type="audio/mpeg">
+                                            Your browser does not support the audio element.
+                                        </audio>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="row justify-content-center">
+                    <div class="col-md-8 col-lg-6">
+                        <div class="card shadow-lg border-0" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-music fa-4x text-muted mb-4"></i>
+                                <h4 class="text-dark mb-3">No Music Available</h4>
+                                <p class="text-muted mb-4">Sorry, we don't have any {{ emotion_display|lower }} music in our library yet.</p>
+                                <div class="d-flex justify-content-center">
+                                    <a href="{% url 'view_music' %}" class="btn btn-primary btn-lg mr-2">
+                                        <i class="fas fa-music mr-2"></i>View All Music
+                                    </a>
+                                    <a href="{% url 'emotion_detect' %}" class="btn btn-outline-light btn-lg">
+                                        <i class="fas fa-redo mr-2"></i>Try Again
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="row justify-content-center mt-5">
+                <div class="col-12 text-center">
+                    <div class="btn-group-lg">
+                        <a href="{% url 'emotion_detect' %}" class="btn btn-warning btn-lg px-4 py-3 mr-3">
+                            <i class="fas fa-redo mr-2"></i>Detect Emotion Again
+                        </a>
+                        <a href="{% url 'view_music' %}" class="btn btn-outline-light btn-lg px-4 py-3">
+                            <i class="fas fa-music mr-2"></i>Browse All Music
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const processingIndicator = document.getElementById('processing-indicator');
+    const emotionResults = document.getElementById('emotion-results');
+    const musicSection = document.getElementById('music-section');
+    const emotionContent = document.getElementById('emotion-content');
+
+    // Simulate processing delay (you can adjust this based on actual processing time)
+    setTimeout(function() {
+        // Fade out processing indicator
+        processingIndicator.style.opacity = '0';
+        setTimeout(() => {
+            processingIndicator.style.display = 'none';
+
+            // Show results with animation
+            emotionResults.style.display = 'block';
+            emotionResults.style.opacity = '0';
+            emotionResults.style.transform = 'translateY(20px)';
+
+            setTimeout(() => {
+                emotionResults.style.transition = 'all 0.5s ease';
+                emotionResults.style.opacity = '1';
+                emotionResults.style.transform = 'translateY(0)';
+
+                // Show music section after results
+                setTimeout(() => {
+                    musicSection.style.display = 'block';
+                    musicSection.style.opacity = '0';
+                    musicSection.style.transform = 'translateY(20px)';
+
+                    setTimeout(() => {
+                        musicSection.style.transition = 'all 0.5s ease';
+                        musicSection.style.opacity = '1';
+                        musicSection.style.transform = 'translateY(0)';
+                    }, 100);
+                }, 1000);
+            }, 100);
+        }, 300);
+
+        // Add emotion-specific content with animation
+        const detectedEmotion = '{{ detected_emotion }}';
+        let emotionHtml = '';
+
+        switch(detectedEmotion) {
+            case 'happy':
+                emotionHtml = `
+                    <div class="emotion-icon mb-3">
+                        <i class="fas fa-smile-beam fa-4x text-warning animate-bounce"></i>
+                    </div>
+                    <h4 class="font-weight-bold mb-3">You're Feeling Happy! 🎉</h4>
+                    <p class="mb-0">Great mood! Here's some upbeat music to keep those positive vibes flowing.</p>
+                `;
+                break;
+            case 'sad':
+                emotionHtml = `
+                    <div class="emotion-icon mb-3">
+                        <i class="fas fa-sad-tear fa-4x text-info animate-pulse"></i>
+                    </div>
+                    <h4 class="font-weight-bold mb-3">You're Feeling Sad 😢</h4>
+                    <p class="mb-0">Let these soothing melodies help lift your spirits and bring comfort.</p>
+                `;
+                break;
+            case 'angry':
+                emotionHtml = `
+                    <div class="emotion-icon mb-3">
+                        <i class="fas fa-angry fa-4x text-danger animate-pulse"></i>
+                    </div>
+                    <h4 class="font-weight-bold mb-3">You're Feeling Angry 😠</h4>
+                    <p class="mb-0">Take a deep breath. These calming tracks might help you relax.</p>
+                `;
+                break;
+            case 'fear':
+                emotionHtml = `
+                    <div class="emotion-icon mb-3">
+                        <i class="fas fa-surprise fa-4x text-warning animate-pulse"></i>
+                    </div>
+                    <h4 class="font-weight-bold mb-3">You're Feeling Fearful 😨</h4>
+                    <p class="mb-0">These gentle tunes might help ease your mind and bring peace.</p>
+                `;
+                break;
+            case 'surprise':
+                emotionHtml = `
+                    <div class="emotion-icon mb-3">
+                        <i class="fas fa-surprise fa-4x text-success animate-bounce"></i>
+                    </div>
+                    <h4 class="font-weight-bold mb-3">You're Feeling Surprised! 😲</h4>
+                    <p class="mb-0">Enjoy some exciting music to match your energetic surprise!</p>
+                `;
+                break;
+            case 'disgust':
+                emotionHtml = `
+                    <div class="emotion-icon mb-3">
+                        <i class="fas fa-tired fa-4x text-secondary animate-pulse"></i>
+                    </div>
+                    <h4 class="font-weight-bold mb-3">You're Feeling Disgusted 😖</h4>
+                    <p class="mb-0">Here are some neutral tracks to help you find balance again.</p>
+                `;
+                break;
+            default:
+                emotionHtml = `
+                    <div class="emotion-icon mb-3">
+                        <i class="fas fa-meh fa-4x text-muted animate-pulse"></i>
+                    </div>
+                    <h4 class="font-weight-bold mb-3">You're Feeling Neutral 😐</h4>
+                    <p class="mb-0">Enjoy this balanced selection of music for your current mood.</p>
+                `;
+        }
+
+        emotionContent.innerHTML = emotionHtml;
+    }, 2000); // 2 second delay for demo - adjust based on actual processing time
+});
+
+// Add hover effects for music cards
+document.addEventListener('DOMContentLoaded', function() {
+    const musicCards = document.querySelectorAll('.music-card');
+
+    musicCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-10px) scale(1.02)';
+            this.style.boxShadow = '0 15px 35px rgba(0,0,0,0.1)';
+        });
+
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
+        });
+    });
+});
+</script>
+
+<style>
+/* Global Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f8f9fa;
+}
+
+/* Processing Indicator */
+.processing-indicator {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Emotion Display */
+.emotion-display {
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.emotion-display::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+}
+
+/* Emotion Indicator Card */
+.emotion-indicator-card {
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+
+.emotion-indicator-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 20px;
+}
+
+.emotion-icon {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-bounce {
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Music Cards */
+.music-card {
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.music-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.music-card:hover::before {
+    opacity: 1;
+}
+
+.music-icon {
+    color: #667eea;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Audio Player Styling */
+.audio-player audio {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.audio-player audio::-webkit-media-controls-panel {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+}
+
+.audio-player audio::-webkit-media-controls-current-time-display,
+.audio-player audio::-webkit-media-controls-time-remaining-display {
+    color: white;
+}
+
+/* Badge Styling */
+.badge {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.badge-pill {
+    border-radius: 50px;
+}
+
+.badge-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.badge-lg {
+    font-size: 1.2em;
+    padding: 0.5em 1em;
+    border-radius: 25px;
+}
+
+/* Button Styling */
+.btn {
+    border-radius: 25px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border: none;
+    box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
+}
+
+.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 87, 108, 0.4);
+}
+
+.btn-outline-light {
+    border-color: rgba(255,255,255,0.5);
+    color: white;
+}
+
+.btn-outline-light:hover {
+    background-color: white;
+    color: #667eea;
+    border-color: white;
+}
+
+/* Card Styling */
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    border: none;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Alert Styling */
+.alert {
+    border-radius: 15px;
+    border: none;
+}
+
+/* Progress Bar */
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+
+    .btn-group-lg .btn {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .music-card {
+        margin-bottom: 20px;
+    }
+
+    .emotion-display {
+        padding: 20px !important;
+    }
+
+    .emotion-indicator-card {
+        padding: 20px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .container-fluid {
+        padding: 15px;
+    }
+
+    .card-body {
+        padding: 20px !important;
+    }
+
+    .music-card .card-body {
+        padding: 15px !important;
+    }
+}
+
+/* Loading Animation */
+.spinner-border {
+    animation: spinner-border 0.75s linear infinite, pulse 2s infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+/* Text Shadow for Better Readability */
+.text-white {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* Focus States */
+.btn:focus,
+.audio-player audio:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+</style>
+
+{% include 'footer.html' %}
+{% endblock %}
