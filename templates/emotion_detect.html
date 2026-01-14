@@ -1,0 +1,175 @@
+{% load static %}
+{% block content %}
+{% include 'header.html' %}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h2 class="card-title mb-4">Emotion-Based Music Recommendation</h2>
+                    <p class="card-text mb-4">
+                        Discover music that matches your current mood! Our system will analyze your facial expressions
+                        through your webcam and recommend songs that complement your detected emotion.
+                    </p>
+
+                    <div class="alert alert-info mb-4">
+                        <h5><i class="fas fa-info-circle"></i> How it works:</h5>
+                        <ol class="text-left">
+                            <li>Click the "Start Camera" button below</li>
+                            <li>Allow camera access when prompted</li>
+                            <li>Position yourself clearly in the frame with good lighting</li>
+                            <li>Look directly at the camera and keep a neutral expression initially</li>
+                            <li>Click "Detect My Emotion" to begin the 3-second analysis</li>
+                            <li>After processing, you'll see your image with face detection boxes and emotion labels</li>
+                        </ol>
+                        <div class="alert alert-light mt-2">
+                            <strong>Tips for best results:</strong>
+                            <ul class="mb-0">
+                                <li>Ensure your face is well-lit and clearly visible</li>
+                                <li>Remove glasses if they interfere with detection</li>
+                                <li>Stay relatively still during the 3-second countdown</li>
+                                <li>Position yourself 1-2 feet from the camera</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div id="camera-section" class="mb-4" style="display: none;">
+                        <div class="row justify-content-center">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-video"></i> Live Camera Preview</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <video id="video" width="100%" height="auto" autoplay muted class="border rounded"></video>
+                                        <div id="countdown" class="mt-2" style="display: none;">
+                                            <h4 class="text-primary">Detecting emotion... <span id="countdown-number">3</span></h4>
+                                        </div>
+                                        <div id="camera-error" class="mt-2 alert alert-danger" style="display: none;">
+                                            <small><i class="fas fa-exclamation-triangle"></i> Camera not accessible. You can still try emotion detection, but results may be limited.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div id="control-buttons">
+                        <button id="start-camera" class="btn btn-success btn-lg mr-2">
+                            <i class="fas fa-video"></i> Start Camera
+                        </button>
+                        <button id="detect-emotion" class="btn btn-primary btn-lg" style="display: none;">
+                            <i class="fas fa-brain"></i> Detect My Emotion
+                        </button>
+                    </div>
+
+                    <form id="emotion-form" method="POST" style="display: none;">
+                        {% csrf_token %}
+                        <input type="hidden" name="detected" value="true">
+                    </form>
+
+                    <div class="mt-4">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt"></i>
+                            Your privacy is protected. Camera access is only used for emotion detection and no images are stored.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let video = document.getElementById('video');
+let startCameraBtn = document.getElementById('start-camera');
+let detectEmotionBtn = document.getElementById('detect-emotion');
+let cameraSection = document.getElementById('camera-section');
+let emotionForm = document.getElementById('emotion-form');
+let countdown = document.getElementById('countdown');
+let countdownNumber = document.getElementById('countdown-number');
+let cameraError = document.getElementById('camera-error');
+
+startCameraBtn.addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        });
+        video.srcObject = stream;
+        cameraSection.style.display = 'block';
+        detectEmotionBtn.style.display = 'inline-block';
+        startCameraBtn.style.display = 'none';
+        cameraError.style.display = 'none';
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        cameraSection.style.display = 'block';
+        cameraError.style.display = 'block';
+        detectEmotionBtn.style.display = 'inline-block';
+        startCameraBtn.style.display = 'none';
+
+        // Show user-friendly error message
+        if (error.name === 'NotAllowedError') {
+            alert('Camera access denied. Please allow camera access and try again.');
+        } else if (error.name === 'NotFoundError') {
+            alert('No camera found. Please connect a camera and try again.');
+        } else {
+            alert('Camera error: ' + error.message + '. You can still try emotion detection.');
+        }
+    }
+});
+
+detectEmotionBtn.addEventListener('click', function() {
+    // Stop the camera stream first
+    if (video.srcObject) {
+        const stream = video.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+    }
+
+    // Hide camera section and show processing
+    cameraSection.style.display = 'none';
+
+    // Start countdown
+    countdown.style.display = 'block';
+    detectEmotionBtn.disabled = true;
+    detectEmotionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Detecting...';
+
+    let count = 3;
+    countdownNumber.textContent = count;
+
+    const countdownInterval = setInterval(() => {
+        count--;
+        countdownNumber.textContent = count;
+
+        if (count <= 0) {
+            clearInterval(countdownInterval);
+            // Wait a moment for camera to be fully released before submitting
+            setTimeout(() => {
+                emotionForm.submit();
+            }, 500); // 500ms delay
+        }
+    }, 1000);
+});
+</script>
+
+<style>
+#video {
+    max-width: 100%;
+    height: auto;
+}
+
+#countdown-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+</style>
+
+{% include 'footer.html' %}
+{% endblock %}

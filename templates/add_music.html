@@ -1,0 +1,58 @@
+{% load static %}
+{% block content %}
+{% include 'header.html' %}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Add Music</h3>
+                    {% if message %}
+                        <div class="alert alert-info">{{ message }}</div>
+                    {% endif %}
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="name">Music Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="music_file">Music File (MP3)</label>
+                            <input type="file" class="form-control-file" id="music_file" name="music_file" accept=".mp3" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="emotion">Emotion</label>
+                            <select class="form-control" id="emotion" name="emotion" required>
+                                <option value="">Select Emotion</option>
+                                <option value="happy">Happy</option>
+                                <option value="sad">Sad</option>
+                                <option value="angry">Angry</option>
+                                <option value="fear">Fear</option>
+                                <option value="surprise">Surprise</option>
+                                <option value="disgust">Disgust</option>
+                                <option value="neutral">Neutral</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="language">Language</label>
+                            <select class="form-control" id="language" name="language" required>
+                                <option value="">Select Language</option>
+                                <option value="english">English</option>
+                                <option value="malayalam">Malayalam</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Add Music</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'footer.html' %}
+{% endblock %}
